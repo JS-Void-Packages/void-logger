@@ -1,0 +1,14 @@
+{
+  "name": "void-logger",
+  "version": "1.0.0",
+  "description": "Logger for nodeJS",
+  "main": "logger.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "void-logger"
+  ],
+  "author": "Mrthomas20121",
+  "license": "MIT"
+}
