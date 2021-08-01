@@ -9,6 +9,10 @@
   "keywords": [
     "void-logger"
   ],
+  "repository": {
+    "url": "https://github.com/Mrthomas20121/void-logger",
+    "type": "github"
+  },
   "author": "Mrthomas20121",
   "license": "MIT"
 }
