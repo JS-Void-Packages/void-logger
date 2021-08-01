@@ -1,6 +1,6 @@
 const VoidLogger = require('.')
 
-let logger = new VoidLogger('latest').setLogLocation('.').shouldCheckForNull();
+let logger = new VoidLogger('latest').setLogLocation('.').shouldCheckForNull()
 
 let d = new Date()
 
