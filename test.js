@@ -1,8 +1,13 @@
-const VoidLogger = require('.')
+const LogManager = require('./logger')
 
-let logger = new VoidLogger('latest').setLogLocation('.').shouldCheckForNull()
+let logger = LogManager.getOrCreateLogger('./app.log')
 
-let d = new Date()
-
+// clear the log
 logger.clear()
-logger.info(['test', 'test1'])
+logger.log("text")
+// log an object
+logger.log({ 'app':true })
+// log a Class
+logger.log(new Date())
+// Logging null, empty string, empty obj and more will print a NULLPointerException.
+logger.log(null)

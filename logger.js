@@ -9,7 +9,6 @@ class CustomError extends Error {
     }
 }
 
-// NullPointerException indicating something is null or undefined
 class NullPointerException extends CustomError {
     constructor(message) {
         super('NullPointerException', message)
@@ -20,126 +19,83 @@ class NullPointerException extends CustomError {
  * Make sure the obj is not null.
  * @param {*} obj 
  * @param {string} message
- * @returns {NullPointerException|*}
+ * @returns {NullPointerException|*} return a NullPointerException if the obj is null
  */
-function requireNonNull(obj, message='Error Object is null') {
-    if(obj == {} || obj == null || obj == ''  || obj == ' ' || typeof obj == 'undefined') return new NullPointerException(message)
+ function requireNonNull(obj, message='Error Object is null') {
+    if(obj instanceof Error) return obj.stack
+    else if(obj == {} || obj == null || obj == ''  || obj == ' ' || typeof obj == 'undefined') return new NullPointerException(message).stack
     return obj
 }
 
-function getData(options={ checkForNull:false, log_file:'latest.log', log_location:'.', encoding:'utf8'}) {
-    let file_path = path.join(options.log_location, options.log_file)
-    let data = ""
-    if(fs.existsSync(file_path)) {
-        data = fs.readFileSync(file_path, options.encoding)
+/**
+ * Get a logger. Create it if it doesn't exist.
+ * @param {string} logPath 
+ */
+function getLogger(logPath) {
+    if(fs.existsSync(logPath)) {
+        return fs.readFileSync(logPath, 'utf8')
     }
-    return data
+    else {
+        fs.writeFileSync(logPath, '', 'utf8')
+    }
+    return ''
 }
 
-function checkForObject(obj) {
-    if(typeof obj === 'object') {
-        return JSON.stringify(obj)
-    }
-    return obj
-}
+class Logger {
 
-module.exports = class VoidLogger {
     /**
-     * Create a new logger
-     * @param {string} log_name Logger file name
+     * @param {string} logPath 
      */
-    constructor(log_name) {
-        this.options = {
-            checkForNull:false,
-            log_file:`${log_name}.log`,
-            log_location:'',
-            encoding:'utf8'
+    constructor(logPath) {
+        this.logPath = logPath
+    }
+
+    log(message) {
+        let logFile = getLogger(this.logPath)
+
+        // make sure the variable is not null
+        let msg = requireNonNull(message, `the variable \`message\` is null or undefined`)
+        
+        // stringify the object 
+        if(typeof msg == 'object') {
+            msg = JSON.stringify(msg)
         }
+
+        logFile+=`${msg}\n`
+        fs.writeFileSync(this.logPath, logFile, 'utf8')
     }
 
-    /**
-     * Set the log path
-     * @param {string} log_path path to the log, crash if the path doesn't exist
-     */
-    setLogLocation(log_path) {
-        if(!fs.existsSync(log_path)) throw new NullPointerException(`Path ${log_path} does not exists!`)
-        this.options.log_location = log_path
-        return this
-    }
-
-    shouldCheckForNull() {
-        this.options.checkForNull = true
-        return this
-    }
-
-    /**
-     * Print a information message
-     * @param {any} message 
-     */
-    info(message) {
-        this.print('Info', checkForObject(message))
-    }
-
-    /**
-     * Print an warning message
-     * @param {any} message 
-     */
-    warning(message) {
-        this.print('Warning', checkForObject(message))
-    }
-
-    /**
-     * Print an error message
-     * @param {any} message 
-     */
-    error(message) {
-        this.print('Error', checkForObject(message))
-    }
-
-    /**
-     * Print a message in the log
-     * @param {string} type 
-     * @param {any} message 
-     */
-    print(type, message) {
-        message = requireNonNull(message, 'Object is empty or null')
-        if(message instanceof Error || message instanceof NullPointerException) {
-            this.writeToLog(message.stack)
-        }
-        else {
-            this.writeToLog(`[${type}] ${Array.isArray(message) || typeof message == 'object' ? JSON.stringify(message):message}`)
-        }
-    }
-
-    /**
-     * Write Data to the log
-     * @param {any} data 
-     */
-    writeToLog(data) {
-        let file_path = path.join(this.options.log_location, this.options.log_file)
-        let log_data = getData(this.options)
-        if(log_data == "") {
-            log_data = data
-        }
-        else {
-            log_data = `${log_data}\n${data}`
-        }
-        fs.writeFileSync(file_path, log_data, this.options.encoding)
-    }
-
-    /**
-     * Clear the log
-     */
     clear() {
-        let file_path = path.join(this.options.log_location, this.options.log_file)
-        fs.writeFileSync(file_path, '', this.options.encoding)
+        fs.writeFileSync(this.logPath, '', 'utf8')
+    }
+}
+
+class LoggerBuilder {
+    setLogPath(logPath) {
+        this.logPath = logPath
+        return this
+    }
+    build() {
+        return new Logger(this.logPath)
+    }
+}
+
+class LogManager {
+    /**
+     * Create or get an active Logger
+     * @param {string} logPath
+     */
+    static getOrCreateLogger(logPath) {
+        return new Logger(logPath)
     }
 
     /**
-     * Clear the log and write a message.
+     * Delete a log file
+     * @param {string} logPath 
      */
-    clearLog() {
-        this.clear()
-        this.print('clear', 'log was cleared!')
+    static deleteLog(logPath) {
+        fs.unlinkSync(logPath)
     }
 }
+
+module.exports = LogManager
