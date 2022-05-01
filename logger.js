@@ -98,7 +98,7 @@ class Logger {
             return value.toLocaleString()
         }
         else if(typeof value == 'object') {
-            return JSON.stringify(value, null, this.#config.format.object.space)
+            return this.#format(JSON.stringify(value, null, this.#config.format.object.space))
         }
         else {
             let formating = this.#config.format.log
