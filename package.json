@@ -1,6 +1,6 @@
 {
   "name": "void-logger",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Logger for nodeJS",
   "main": "logger.js",
   "scripts": {
@@ -14,5 +14,8 @@
     "type": "git"
   },
   "author": "Mrthomas20121",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "void-bulk-replace": "^0.0.1"
+  }
 }
