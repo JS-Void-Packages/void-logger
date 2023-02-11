@@ -1,10 +1,10 @@
 {
   "name": "void-logger",
-  "version": "1.0.3b",
+  "version": "2.0.0",
   "description": "Logger for nodeJS",
   "main": "logger.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js"
   },
   "keywords": [
     "void-logger"
@@ -14,8 +14,5 @@
     "type": "git"
   },
   "author": "Mrthomas20121",
-  "license": "MIT",
-  "dependencies": {
-    "void-bulk-replace": "^0.0.1"
-  }
+  "license": "MIT"
 }

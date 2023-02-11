@@ -1,50 +1,61 @@
-# void-logger
-void-logger is a Simple Logger written in javascript(NodeJS) with little to no dependencies.
+# void-logger 2.0.0
+void-logger is a Simple Logger written in javascript(NodeJS) with no dependencies.
 ## installation
-`npm install void-logger`
+`npm install void-logger@latest`
 ## How to use it
-you create a logger with `LogManager.getOrCreateLogger(logPath)` where logPath is the path to the log file.
 ```js
-const LogManager = require('void-logger')
+const { Logger } = require('void-logger');
 
-let logger = LogManager.getOrCreateLogger('./app.log')
+// create a logger with these properties
+let logger = Logger.create('.', {
+    logName: 'logger',
+    logFormat: '[type] [date] [time] [text]',
+    dateFormat: '[year]/[day]/[month]',
+    timeFormat:'[hours]:[minutes]:[seconds]',
+    logToConsole:false
+});
 
 // clear the log
-logger.clear()
-logger.log("text")
-// log an object
-logger.log({ 'app':true })
+logger.clearLog();
+
+// info message
+logger.info('App has been updated!');
+
+// error message
+logger.error('Config not found!');
+
+// warning message
+logger.warning('You are using a deprecated method!');
 ```
-## 1.0.3 version
-in 1.0.3 you can create a file titled `void_logger.json` in your project folder(basically where you're executing the js files in).
-<br>This will let you customize the printing format.
-<br>If the file does not exists, it will uses the default format.
-<br>Anything inside `{}` is a variable.
-<br>The following variables are available : 
-- `{date}` is the date when the script is ran.
-- `{body}` is what is getting printed.
-- `DEFAULT` mean it will use the default format.
-<br>Error format variables : 
-- `{stack}` give you the error stack
-- `{name}` give you the error name
-- `{message}` is the error message
-<br> Date format variables :
-- `{time}` give the time of the day in the Locale Time format `hh:mm:ss`(h = hour, m = minute, s = second) with AM/PM in english
-- `{hours}` give the hours.
-- `{minutes}` give the minutes.
-- `{seconds}` give the seconds.
-- `{day}` give the day.
-- `{month}` give the month.
-- `{year}` give the year.
-```json
-{
-    "format": {
-        "log": "[{date}] {body}",
-        "date": "{time}",
-        "errror": "DEFAULT",
-        "object": {
-            "space": 0
-        }
-    }
-}
+## Example config
+```js
+let exampleConfig = {
+    // name of the logger
+    "logName": "logger",
+    // [date] is the date formated
+    // [text] is the text printed by the logger
+    // [type] is the type of logging(info, error, warning)
+    // [time] is the time formated
+    "logFormat": "[type] [date] [time] [text]",
+
+    // format for the date
+    // [local_date] = Local Date.
+    // [local] = Local date and time.
+    // [year] = Year
+    // [month] = Month
+    // [day] = day
+    // [time] = time
+    "dateFormat": "[local]",
+
+    // format for the time
+    // [hours] is current hour
+    // [minutes] is current minutes
+    // [seconds] is current second
+    // [milliseconds] is current milliseconds
+    // [local_time] give the local time string
+    "timeFormat": "[time]",
+
+    // choose to log the message in the console or not
+    logToConsole:false
+};
 ```

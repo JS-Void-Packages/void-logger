@@ -1,9 +1,21 @@
-const LogManager = require('./logger')
+const { Logger } = require('./logger.js');
 
-let logger = LogManager.getOrCreateLogger('./app.log')
+// no config specified
+let logger = Logger.create('.', {
+    logName: 'logger',
+    logFormat: '[type] [date] [time] [text]',
+    dateFormat: '[local_date]',
+    timeFormat:'[hours]:[minutes]:[seconds]'
+});
 
 // clear the log
-logger.clear()
-logger.log("text")
-// log an object
-logger.log({ 'app':true })
+logger.clearLog();
+
+// info message
+logger.info('App has been updated!');
+
+// error message
+logger.error('Config not found!');
+
+// warning message
+logger.warning('You are using a deprecated method!');

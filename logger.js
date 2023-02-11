@@ -1,163 +1,175 @@
-const fs = require('fs')
-const path = require('path')
-const bulkReplace = require('void-bulk-replace')
-
-function isClass(func){
-    // Class constructor is also a function
-    if(!(func && func.constructor === Function) || func.prototype === undefined)
-      return false;
-    
-    // This is a class that extends other class
-    if(Function.prototype !== Object.getPrototypeOf(func))
-      return true;
-    
-    // Usually a function will only have 'constructor' in the prototype
-    return Object.getOwnPropertyNames(func.prototype).length > 1;
-}
-
-/**
- * Load a config file
- * @returns {Object}
- */
-function loadConfig() {
-    let file = path.join(process.cwd(), 'void_logger.json')
-    if(fs.existsSync(file)) {
-        return JSON.parse(fs.readFileSync(file, 'utf8'))
-    }
-
-    // no config found
-    return {
-        "log": {
-            "format": "DEFAULT",
-            "date_format": "DEFAULT",
-            "errror_format": "DEFAULT"
-        }
-    }
-}
-
+const fs = require('fs');
+const path = require('path');
 
 class Logger {
 
-    /**
-     * @type { {format:{ log:String,date?:String, error?:String, object?:{ space:Number } }} } #config
-     */
-    #config = {
-        format: {
-            log: 'DEFAULT',
-            date: 'DEFAULT',
-            error: 'DEFAULT',
-            object: {
-                space:0
-            }
-        }
-    }
+    #logData = '';
+    #logFile = '';
+    #config = {};
 
+    // return a log instance
     /**
+     * Use
      * @param {string} logPath 
+     * @param {{ void_logger:{ logName: string, logFormat: string, dateFormat: string, timeFormat: string} } | { logName: string, logFormat: string, dateFormat: string, timeFormat: string} | string } config 
+     * @returns 
      */
-    constructor(logPath) {
-        this.logPath = logPath
-        this.#config = loadConfig()
-    }
+    static create(logPath, config=null) {
+        if(config != null && config != undefined) {
+            if(typeof config == 'object') {
+                let json = config;
+                if(config.hasOwnProperty('void_logger')) {
+                    json = config.void_logger;
+                }
+                if(!json.hasOwnProperty('logToConsole')) {
+                    json.logToConsole = false;
+                }
+                return new Logger().#hiddenConstructor(logPath, json);
+            }
+            else if(typeof config == 'string') {
+                let json = JSON.parse(fs.readFileSync(config, 'utf8'));
+                if(json.hasOwnProperty('void_logger')) {
+                    json = json.void_logger;
+                }
 
-    /**
-     * @param {Error|Date|any} value
-     */
-    #format(value) {
-        if(value instanceof Error) {
-            let formating = this.#config.format.error
-            if(formating != 'DEFAULT') {
-                return bulkReplace(formating, {
-                    '{stack}':value.stack,
-                    '{name}':value.name,
-                    '{message}':value.message
-                })
+                if(!json.hasOwnProperty('logToConsole')) {
+                    json.logToConsole = false;
+                }
+
+                return new Logger().#hiddenConstructor(logPath, json);
             }
-            return value.stack
-        }
-        else if(value instanceof Date) {
-            let formating = this.#config.format.date
-            let year = value.getFullYear()
-            let month = value.getMonth()
-            let day = value.getDay()
-            let hours = value.getHours()
-            let minutes = value.getMinutes()
-            let seconds = value.getSeconds()
-            let time = value.toLocaleTimeString()
-            if(formating != 'DEFAULT') {
-                return bulkReplace(formating, {
-                    '{time}':time,
-                    '{year}':year,
-                    '{month}':month,
-                    '{day}':day,
-                    '{hours}':hours,
-                    '{minutes}':minutes,
-                    '{seconds}': seconds
-                })
-            }
-            return value.toLocaleString()
-        }
-        else if(typeof value == 'object') {
-            return this.#format(JSON.stringify(value, null, this.#config.format.object.space))
         }
         else {
-            let formating = this.#config.format.log
-            if(formating != 'DEFAULT') {
-                return bulkReplace(formating, {
-                    '{date}':this.#format(new Date()),
-                    '{body}':value
-                })
-            }
-            return `[${this.#format(new Date())}] ${value}`
+            return new Logger().#hiddenConstructor(logPath, {
+                logName:'logger',
+                logFormat:'[type] [date] [time] [text]',
+                dateFormat: '[local]',
+                timeFormat: '[local_time]'
+            });
         }
     }
 
-     /**
-     * Get a logger. Create it if it doesn't exist.
-     * @param {string} logPath 
+    /**
+     * DO NOT USE This CONSTRUCTOR DIRECTLY, USE `Logger.create` instead
      */
-    #getLogger(logPath) {
-        if(fs.existsSync(logPath)) {
-            return fs.readFileSync(logPath, 'utf8')
+    constructor() {}
+
+    /**
+     * Called by Logger.create
+     * @param {string} logPath 
+     * @param {{ logName: string, logFormat: string, dateFormat: string, logToConsole: boolean}} config 
+     */
+    #hiddenConstructor(logPath, config) {
+        this.#logFile = path.join(logPath, config.logName+'.log');
+        this.#config = config;
+        return this;
+    }
+
+    #readOrCreateLogs() {
+        if(fs.existsSync(this.#logFile)) {
+            return fs.readFileSync(this.#logFile, 'utf8');
         }
         else {
-            fs.writeFileSync(logPath, '', 'utf8')
+            // create an empty log file
+            fs.writeFileSync(this.#logFile, '', 'utf8');
+            return '';
         }
-        return ''
     }
 
-    log(message) {
-        let logFile = this.#getLogger(this.logPath)
-
-        // make sure the variable is not null
-        let msg = this.#format(message)
-
-        logFile+=`${msg}\n`
-        logFile.trim()
-        fs.writeFileSync(this.logPath, logFile, 'utf8')
+    /**
+     * Internal method to clear the log
+     */
+    #clear() {
+        fs.writeFileSync(this.#logFile, '', 'utf8');
     }
 
-    clear() {
-        fs.writeFileSync(this.logPath, '', 'utf8')
+    /**
+     * Add a 0 to a date number(day, month, etc...) whose value is lower than 10.
+     * This make the month, day and time show the zero even if they don't technically exist
+     * @param {number} dateElem 
+     * @returns {number}
+     */
+    #convertDateElement(dateElem) {
+        // check if the element is between 0(included) and 10
+        if(dateElem < 10 && dateElem >= 0) {
+            return `0${dateElem}`;
+        }
+        return dateElem;
+    }
+
+    /**
+     * Add zeros to the local date
+     * @param {string} local 
+     * @returns 
+     */
+    #convertLocalDate(local='1/1/2023') {
+        return local.split('/').map(value => {
+            return this.#convertDateElement(Number(value));
+        }).join('/');
+    }
+
+    /**
+     * write a message in the log using this type.
+     * @param {'info'|'warning'|'error'} type the type of logging(info, warning, error)
+     * @param {string} message 
+     */
+    #write(type, message) {
+        // date format
+        let date = new Date();
+        let timeFormat = this.#config.timeFormat;
+        let dateFormat = this.#config.dateFormat;
+
+        timeFormat=timeFormat.replace('[hours]', this.#convertDateElement(date.getHours()));
+        timeFormat=timeFormat.replace('[minutes]', this.#convertDateElement(date.getMinutes()));
+        timeFormat=timeFormat.replace('[seconds]', this.#convertDateElement(date.getSeconds()));
+        timeFormat=timeFormat.replace('[local_time]', date.toLocaleTimeString());
+        timeFormat=timeFormat.replace('[milliseconds]', this.#convertDateElement(date.getMilliseconds()));
+
+        dateFormat=dateFormat.replace('[local_date]', this.#convertLocalDate(date.toLocaleDateString()));
+        dateFormat=dateFormat.replace('[local]', date.toLocaleString());
+        dateFormat=dateFormat.replace('[year]', date.getFullYear());
+        dateFormat=dateFormat.replace('[month]', this.#convertDateElement(date.getMonth()));
+        dateFormat=dateFormat.replace('[day]', this.#convertDateElement(date.getDay()));
+        dateFormat=dateFormat.replace('[time]', timeFormat);
+
+        let output = this.#config.logFormat;
+
+        output=output.replace('[type]', `[${type}]`);
+        output=output.replace('[date]', `[${dateFormat}]`);
+        output=output.replace('[time]', `[${timeFormat}]`);
+        output=output.replace('[text]', message);
+
+        let log = this.#readOrCreateLogs();
+        if(log == '') {
+            log = log+output;
+        }
+        else {
+            log = log+`\n${output}`;
+        }
+        fs.writeFileSync(this.#logFile, log, 'utf8');
+
+        if(this.#config.logToConsole) {
+            console.log(output);
+        }
+    }
+
+    clearLog() {
+        this.#clear();
+    }
+
+    info(text) {
+        this.#write('info', text);
+    }
+
+    error(text) {
+        this.#write('error', text);
+    }
+
+    warning(text) {
+        this.#write('warning', text);
     }
 }
 
-class LogManager {
-    /**
-     * Create or get an active Logger
-     * @param {string} logPath
-     */
-    static getOrCreateLogger(logPath) {
-        return new Logger(logPath)
-    }
-
-    /**
-     * Delete a log file
-     * @param {string} logPath 
-     */
-    static deleteLog(logPath) {
-        fs.unlinkSync(logPath)
-    }
+module.exports = {
+    Logger:Logger
 }
-
-module.exports = LogManager
